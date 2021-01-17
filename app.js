@@ -10,6 +10,7 @@ app.get('/', function (req, res) {
   res.status(200).send('API works.');
 });
 global.router = express.Router();
+global._ = require('lodash');
 global.MONGO = require("./lib/Schema/index")
 global.async = require("async");
 var bodyParser = require('body-parser');

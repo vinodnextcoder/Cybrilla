@@ -1,5 +1,6 @@
-const { concatSeries } = require('async');
+
 const { body, validationResult } = require('express-validator');
+const {v4 : uuidv4} = require('uuid') 
 let tempArray=[
   {
       "productId": "6601a76b-8980-485d-8339-80292c066061",
@@ -86,12 +87,23 @@ function addItem(req, res) {
     },
     function (value, callback) {
       let prods = calData(value)
+      _.each(prods, function (ele) {
+        let obj = {
+          item: ele.productId,
+          cartId:uuidv4() ,
+          orderCount: 1,
+          price: ele.amountToBePaid,
+          discount: ele.discount,
+        }
+        console.log(obj);
+      });
       callback(null, prods);
     }
   ], function (err, result) {
     res.status(200).send(result);
   });
 }
+
 function readItem(req, res) {
   MONGO.ECART.find({}, function (err, products) {
     if (err) return res.status(500).send("There was a problem finding the products.");
