@@ -46,6 +46,7 @@ let tempArray=[
 router.post('/addTocart',addItem);
 router.post('/readEcart',readItem);
 function addItem(req, res) {
+  let updateArray=[];
   async.waterfall([
     function (callback) {
       if (req.body && typeof req.body.cart === 'undefined' || req.body.cart.length == 0) {
@@ -67,6 +68,7 @@ function addItem(req, res) {
               }
             }
           ]
+          // finding product 
           MONGO.PRODUCT.aggregate(pipeline, function (err, products) {
             if (err) return res.status(400).send({ statusCode: 400, msg: "There was a problem finding the products.", data: null });
             else {
@@ -88,31 +90,57 @@ function addItem(req, res) {
     function (value, callback) {
       let prods = calData(value)
       let insertArray = [];
+      let ProductNotTobeSold = [];
       _.each(prods, function (ele) {
-        let obj = {
-          item: ele.productId,
-          cartId: uuidv4(),
-          orderCount: 1,
-          price: ele.amountToBePaid,
-          discount: ele.discount,
-        }
-        let inserObj = {
-          insertOne: {
-            "document": obj
+        let found = req.body.cart.find(o => o.productId === ele.productId);
+        let orderCnt = 0;
+        let orderObjupdate = {}
+        if (found && found.qty <= ele.qty) {
+          orderCnt = found.qty - ele.qty
+          orderObjupdate = {
+            productId: ele.productId,
+            qty: orderCnt
           }
+          // update product for which item remaining after place order
+          orderObjupdate = {
+            updateOne: {
+              filter: { productId: ele.productId },
+              update: { qty: orderCnt }
+            }
+          }
+          updateArray.push(orderObjupdate)
+
+          let obj = {
+            item: ele.productId,
+            cartId: uuidv4(),
+            orderCount: ele.qty,
+            price: ele.amountToBePaid,
+            discount: ele.discount,
+          }
+
+          let inserObj = {
+            insertOne: {
+              "document": obj
+            }
+          }
+          insertArray.push(inserObj);
+
         }
-        insertArray.push(inserObj);
+        else {
+          ProductNotTobeSold.push(ele);
+        }
       });
-      MONGO.ECART.bulkWrite(insertArray,
-        function (err, prodData) {
-          console.log(err, prodData)
-          if (err) {
-            return res.status(500).send("There was a problem registering the user`.");
-          }
-          else {
-            callback(null, prodData);
-          }
-        });
+      callback(null, true)
+      // inserting into cart
+      // MONGO.ECART.bulkWrite(insertArray,
+      //   function (err, prodData) {
+      //     if (err) {
+      //       return res.status(500).send("There was a problem insert to ecart.");
+      //     }
+      //     else {
+      //       callback(null, prodData);
+      //     }
+      //   });
     }
   ], function (err, result) {
     res.status(200).send(result);
