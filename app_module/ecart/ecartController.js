@@ -117,11 +117,12 @@ function addItem(req, res) {
             }
           }
           updateArray.push(orderObjupdate)
+          let value=ele.amountToBePaid*ele.qty
           let obj = {
             item: ele.productId,
             cartId: uuidv4(),
             orderCount: ele.qty,
-            price: ele.amountToBePaid,
+            price: value,
             discount: ele.discount,
           }
           let inserObj = {
@@ -139,7 +140,7 @@ function addItem(req, res) {
       MONGO.ECART.bulkWrite(insertArray,
         function (err, prodData) {
           if (err) {
-            return res.status(500).send("There was a problem insert to ecart.");
+            return res.status(500).send({status:500,msg:"There was a problem.",data:prodData});
           }
           else {
             callback(null, prodData);
@@ -152,7 +153,7 @@ function addItem(req, res) {
         MONGO.PRODUCT.bulkWrite(updateArray,
         function (err, prodData) {
           if (err) {
-            return res.status(500).send("There was a problem update.");
+            return res.status(400).send({status:400,msg:"There was a insert tp insert or update.",data:prodData});
           }
           else {
             callback(null, prodData);
@@ -164,7 +165,7 @@ function addItem(req, res) {
       }
     }
   ], function (err, result) {
-    if (err) { return res.status(500).send({status:400,msg:"There was a problem finding the products.",data:result});}
+    if (err) { return res.status(400).send({status:400,msg:"There was a problem finding the products.",data:result});}
     else
     {
       res.status(200).send({status:200,msg:"Record inserted ",data:result});
@@ -174,7 +175,7 @@ function addItem(req, res) {
 
 function readItem(req, res) {
   MONGO.ECART.find({}, function (err, products) {
-    if (err) {return res.status(500).send({status:400,msg:"There was a problem finding the products.",data:result})}
+    if (err) {return res.status(400).send({status:400,msg:"There was a problem finding the products.",data:products})}
     else{
       res.status(200).send({status:200,msg:"sucess",data:products});
     }
