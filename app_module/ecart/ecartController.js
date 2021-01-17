@@ -87,17 +87,32 @@ function addItem(req, res) {
     },
     function (value, callback) {
       let prods = calData(value)
+      let insertArray = [];
       _.each(prods, function (ele) {
         let obj = {
           item: ele.productId,
-          cartId:uuidv4() ,
+          cartId: uuidv4(),
           orderCount: 1,
           price: ele.amountToBePaid,
           discount: ele.discount,
         }
-        console.log(obj);
+        let inserObj = {
+          insertOne: {
+            "document": obj
+          }
+        }
+        insertArray.push(inserObj);
       });
-      callback(null, prods);
+      MONGO.ECART.bulkWrite(insertArray,
+        function (err, prodData) {
+          console.log(err, prodData)
+          if (err) {
+            return res.status(500).send("There was a problem registering the user`.");
+          }
+          else {
+            callback(null, prodData);
+          }
+        });
     }
   ], function (err, result) {
     res.status(200).send(result);
