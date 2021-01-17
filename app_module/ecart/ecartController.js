@@ -45,6 +45,14 @@ let tempArray=[
 ]
 router.post('/addTocart',addItem);
 router.post('/readEcart',readItem);
+/*
+step to add item to cart
+1. find all item which oder by user
+2. check item exist in system
+3. check qauntity in product
+4. add item to cart
+5. update product collection after sale the item
+*/
 function addItem(req, res) {
   let updateArray=[];
   async.waterfall([
@@ -109,7 +117,6 @@ function addItem(req, res) {
             }
           }
           updateArray.push(orderObjupdate)
-
           let obj = {
             item: ele.productId,
             cartId: uuidv4(),
@@ -117,40 +124,60 @@ function addItem(req, res) {
             price: ele.amountToBePaid,
             discount: ele.discount,
           }
-
           let inserObj = {
             insertOne: {
               "document": obj
             }
           }
           insertArray.push(inserObj);
-
         }
         else {
           ProductNotTobeSold.push(ele);
         }
       });
-      callback(null, true)
       // inserting into cart
-      // MONGO.ECART.bulkWrite(insertArray,
-      //   function (err, prodData) {
-      //     if (err) {
-      //       return res.status(500).send("There was a problem insert to ecart.");
-      //     }
-      //     else {
-      //       callback(null, prodData);
-      //     }
-      //   });
+      MONGO.ECART.bulkWrite(insertArray,
+        function (err, prodData) {
+          if (err) {
+            return res.status(500).send("There was a problem insert to ecart.");
+          }
+          else {
+            callback(null, prodData);
+          }
+        });
+    },
+    function (value, callback) {
+      if(updateArray){
+        // updating product after sale item
+        MONGO.PRODUCT.bulkWrite(updateArray,
+        function (err, prodData) {
+          if (err) {
+            return res.status(500).send("There was a problem update.");
+          }
+          else {
+            callback(null, prodData);
+          }
+        });
+      }
+      else{
+        callback(null, true)
+      }
     }
   ], function (err, result) {
-    res.status(200).send(result);
+    if (err) { return res.status(500).send({status:400,msg:"There was a problem finding the products.",data:result});}
+    else
+    {
+      res.status(200).send({status:200,msg:"Record inserted ",data:result});
+    }
   });
 }
 
 function readItem(req, res) {
   MONGO.ECART.find({}, function (err, products) {
-    if (err) return res.status(500).send("There was a problem finding the products.");
-    res.status(200).send(products);
+    if (err) {return res.status(500).send({status:400,msg:"There was a problem finding the products.",data:result})}
+    else{
+      res.status(200).send({status:200,msg:"sucess",data:products});
+    }
 });
 }
 
